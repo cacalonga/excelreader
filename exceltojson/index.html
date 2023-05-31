@@ -6,124 +6,217 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <style>
+        #previewExcel {
+            overflow-y: auto;
+        }
+    
+        .divSeat {
+            display: flex;
+            flex-direction: row;
+            font-size: 12px;
+            color: green;
+            padding: 5px;
+            cursor: pointer;
+        }
+    
+            .divSeat div {
+                min-width: 50px;
+                user-select: none;
+            }
+    </style>
 </head>
 
 <body>
-    <input type="file" id="excelfile" onchange="ExportToTable()" />
-    <table id='exceltable'></table>
+    <div class="row mb-3 d-flex align-items-center">
+        <div class="col-md-1 col-sm-12" style="text-align:center;"><label for="excelFile"><i class="display-6 text-muted bx bx-cloud-upload"></i></label></div>
+        <div class="col-md-11 col-sm-12"><input type="file" id="excelfile" onchange="ExportToTable()" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" /></div>
+    </div>
+    <div>
+        <div id='previewExcel'></div>
+    </div>
     <script type="text/javascript" src="jquery.min.js"></script>
     <!-- <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/froala-editor/1.1.9/js/libs/jquery-1.10.2.min.js"></script> -->
     <script src="xls.core.min.js"></script>
     <script src="xlsx.core.min.js"></script>
     <script>
 
-        function ExportToTable() {
-            var regex = /^([a-zA-Z0-9\s_\\.\-:])+(.xlsx)$/;
-            /*Checks whether the file is a valid excel file*/
-            if (regex.test($("#excelfile").val().toLowerCase())) {
-                var xlsxflag = false; /*Flag for checking whether excel is .xls format or .xlsx format*/
-                if ($("#excelfile").val().toLowerCase().indexOf(".xlsx") > 0) {
-                    xlsxflag = true;
-                }
-                /*Checks whether the browser supports HTML5*/
-                if (typeof (FileReader) != "undefined") {
-                    var reader = new FileReader();
-                    reader.onload = function (e) {
-                        var data = e.target.result;
-                        /*Converts the excel data in to object*/
-                        if (xlsxflag) {
-                            var workbook = XLSX.read(data, { type: 'binary' });
-                        }
-                        else {
-                            var workbook = XLS.read(data, { type: 'binary' });
-                        }
-                        /*Gets all the sheetnames of excel in to a variable*/
-                        var sheet_name_list = workbook.SheetNames;
-                        var cnt = 0; /*This is used for restricting the script to consider only first sheet of excel*/
-                        //var jsonExcel = [];{ header: 1, defval: '', blankrows: true }
-                        var worksheet = workbook.Sheets[sheet_name_list[0]];
-                        //var cells = Object.keys(worksheet);
-                        var exceljson = XLSX.utils.sheet_to_json(worksheet, {header: 1,defval: '', blankrows: true});
-                        var longArr = JSON.parse(JSON.stringify(exceljson));
-                        var longCount = longArr.sort()[longArr.length - 1].length;
-                        console.log(longCount);
-                        exceljson.forEach(element => {
-                            console.log(element);
-                            var row$ = $('<tr/>');
-                            for (let i = 0; i < longCount; i++) {
-                                if(typeof(element[i]) == undefined ){
-                                    console.log(`col${i} : empty`);
-                                    row$.append($('<td/>').html(''));
-                                }else{
-                                    console.log(`col${i} : ` +element[i]);
-                                    row$.append($('<td/>').html(element[i]));
-                                }
-                            }
-                            $('#exceltable').append(row$);
-                            console.log('-----------------------------------------------------');
-                        });
+function ExportToTable() {
+			var regex = /^([a-zA-Z0-9\s_\\.\-:])+(.xlsx)$/;
+			console.log($("#excelfile").val());
+			if (regex.test($("#excelfile").val().toLowerCase())) {
+				if (typeof (FileReader) != "undefined") {
+					var reader = new FileReader();
+					reader.onload = function (e) {
+						var data = e.target.result;
+						var workbook = XLSX.read(data, { type: 'binary' });
+						var sheet_name_list = workbook.SheetNames;
+						var worksheet = workbook.Sheets[sheet_name_list[0]];
+						var exceljson = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', blankrows: true });
+						var longArr = JSON.parse(JSON.stringify(exceljson));
+						var longCount = longArr.sort()[longArr.length - 1].length;
+						console.log(longCount);
+						exceljson.forEach(element => {
+							var div$ = $(`<div class='divSeat'></div>`);
+							for (let i = 0; i < longCount; i++) {
+								let ell = element[i];
+								if (typeof (ell) == "undefined") {
+									div$.append($(`<div class="seatBox" style="border: 2px solid white;margin: 2px;"></div>`));
+								} else {
+									div$.append($(`<div class="seatBox" style="border: 2px solid grey;margin: 2px;text-align:center;">${ell}</div>`));
+								}
+							}
+							$('#previewExcel').append(div$);
+						});
+					}
+					reader.readAsArrayBuffer($("#excelfile")[0].files[0]);
+
+				}
+				else {
+					alert("Sorry! Your browser does not support HTML5!");
+				}
+			}
+			else {
+				alert("Please upload a valid Excel file!");
+			}
+		}
+		var controlForDrag;
+		$('body').on('mousemove','.seatBox',function(e){
+			if (e.buttons == 1) {
+				if (controlForDrag) {
+					$(this).prop('selected', false);
+					$(this).css('backgroundColor', 'white');
+					
+				} else {
+					$(this).prop('selected', true);
+					$(this).css('backgroundColor', 'greenyellow');
+					
+				}
+			}
+		})
+
+		$('body').on('mousedown', '.seatBox', function (e) {
+			if (e.buttons == 1) {
+				controlForDrag = $(this).is(':selected');
+				if($(this).is(':selected')){
+					$(this).prop('selected', false);
+					$(this).css('backgroundColor', 'white');
+					
+				}else{
+					$(this).prop('selected', true);
+					$(this).css('backgroundColor', 'greenyellow');
+					
+				}
+
+			}
+		})
+        // function ExportToTable() {
+        //     var regex = /^([a-zA-Z0-9\s_\\.\-:])+(.xlsx)$/;
+        //     /*Checks whether the file is a valid excel file*/
+        //     if (regex.test($("#excelfile").val().toLowerCase())) {
+        //         var xlsxflag = false; /*Flag for checking whether excel is .xls format or .xlsx format*/
+        //         if ($("#excelfile").val().toLowerCase().indexOf(".xlsx") > 0) {
+        //             xlsxflag = true;
+        //         }
+        //         /*Checks whether the browser supports HTML5*/
+        //         if (typeof (FileReader) != "undefined") {
+        //             var reader = new FileReader();
+        //             reader.onload = function (e) {
+        //                 var data = e.target.result;
+        //                 /*Converts the excel data in to object*/
+        //                 if (xlsxflag) {
+        //                     var workbook = XLSX.read(data, { type: 'binary' });
+        //                 }
+        //                 else {
+        //                     var workbook = XLS.read(data, { type: 'binary' });
+        //                 }
+        //                 /*Gets all the sheetnames of excel in to a variable*/
+        //                 var sheet_name_list = workbook.SheetNames;
+        //                 var cnt = 0; /*This is used for restricting the script to consider only first sheet of excel*/
+        //                 //var jsonExcel = [];{ header: 1, defval: '', blankrows: true }
+        //                 var worksheet = workbook.Sheets[sheet_name_list[0]];
+        //                 //var cells = Object.keys(worksheet);
+        //                 var exceljson = XLSX.utils.sheet_to_json(worksheet, {header: 1,defval: '', blankrows: true});
+        //                 var longArr = JSON.parse(JSON.stringify(exceljson));
+        //                 var longCount = longArr.sort()[longArr.length - 1].length;
+        //                 console.log(longCount);
+        //                 exceljson.forEach(element => {
+        //                     console.log(element);
+        //                     var row$ = $('<tr/>');
+        //                     for (let i = 0; i < longCount; i++) {
+        //                         if(typeof(element[i]) == undefined ){
+        //                             console.log(`col${i} : empty`);
+        //                             row$.append($('<td/>').html(''));
+        //                         }else{
+        //                             console.log(`col${i} : ` +element[i]);
+        //                             row$.append($('<td/>').html(element[i]));
+        //                         }
+        //                     }
+        //                     $('#exceltable').append(row$);
+        //                     console.log('-----------------------------------------------------');
+        //                 });
 
 
-                        // sheet_name_list.forEach(function (y) { /*Iterate through all sheets*/
-                        //     /*Convert the cell value to Json*/
-                        //     //console.log(workbook.Sheets[y]);
-                        //     if (xlsxflag) {
-                        //         var exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets[y], {"header":false});// XLSX.utils.sheet_to_json(workbook.Sheets[y]);
-                        //         jsonExcel.push(exceljson);
-                        //         // var worksheet = workbook.Sheets[y];
-                        //         // var cells = Object.keys(worksheet);
-                        //         //console.log(cells);
-                        //         // for (var i = 0; i < Object.keys(cells).length; i++) {
+        //                 // sheet_name_list.forEach(function (y) { /*Iterate through all sheets*/
+        //                 //     /*Convert the cell value to Json*/
+        //                 //     //console.log(workbook.Sheets[y]);
+        //                 //     if (xlsxflag) {
+        //                 //         var exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets[y], {"header":false});// XLSX.utils.sheet_to_json(workbook.Sheets[y]);
+        //                 //         jsonExcel.push(exceljson);
+        //                 //         // var worksheet = workbook.Sheets[y];
+        //                 //         // var cells = Object.keys(worksheet);
+        //                 //         //console.log(cells);
+        //                 //         // for (var i = 0; i < Object.keys(cells).length; i++) {
 
-                        //         //         jsonExcel.push(worksheet[cells[i]].v); //Contails all column names
+        //                 //         //         jsonExcel.push(worksheet[cells[i]].v); //Contails all column names
 
-                        //         // }
+        //                 //         // }
 
-                        //     }
-                        //     else {
-                        //         var exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets[y]);
-                        //         jsonExcel.push(exceljson);
-                        //     }
-                        //     // if (exceljson.length > 0 && cnt == 0) {
-                        //     //     BindTable(exceljson, '#exceltable');
-                        //     //     cnt++;
-                        //     // }
-                        // });
-                        //$('#exceltable').show();
-                        //console.log(jsonExcel);
-                        //return jsonExcel;
-                    }
-                    if (xlsxflag) {/*If excel file is .xlsx extension than creates a Array Buffer from excel*/
-                        reader.readAsArrayBuffer($("#excelfile")[0].files[0]);
-                    }
-                    else {
-                        reader.readAsBinaryString($("#excelfile")[0].files[0]);
-                    }
-                }
-                else {
-                    alert("Sorry! Your browser does not support HTML5!");
-                }
-            }
-            else {
-                alert("Please upload a valid Excel file!");
-            }
-        }
+        //                 //     }
+        //                 //     else {
+        //                 //         var exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets[y]);
+        //                 //         jsonExcel.push(exceljson);
+        //                 //     }
+        //                 //     // if (exceljson.length > 0 && cnt == 0) {
+        //                 //     //     BindTable(exceljson, '#exceltable');
+        //                 //     //     cnt++;
+        //                 //     // }
+        //                 // });
+        //                 //$('#exceltable').show();
+        //                 //console.log(jsonExcel);
+        //                 //return jsonExcel;
+        //             }
+        //             if (xlsxflag) {/*If excel file is .xlsx extension than creates a Array Buffer from excel*/
+        //                 reader.readAsArrayBuffer($("#excelfile")[0].files[0]);
+        //             }
+        //             else {
+        //                 reader.readAsBinaryString($("#excelfile")[0].files[0]);
+        //             }
+        //         }
+        //         else {
+        //             alert("Sorry! Your browser does not support HTML5!");
+        //         }
+        //     }
+        //     else {
+        //         alert("Please upload a valid Excel file!");
+        //     }
+        // }
 
-        function BindTable(jsondata, tableid) {/*Function used to convert the JSON array to Html Table*/
-            console.log(jsondata);
-            var columnSet = [];
-            for (let i = 0; i < jsondata.length; i++) {
+        // function BindTable(jsondata, tableid) {/*Function used to convert the JSON array to Html Table*/
+        //     console.log(jsondata);
+        //     var columnSet = [];
+        //     for (let i = 0; i < jsondata.length; i++) {
 
-                var rowHash = jsondata[i];
-                console.log(rowHash);
-                for (var key in rowHash) {
-                    if (rowHash.hasOwnProperty(key)) {
-                        if ($.inArray(key, columnSet) == -1) {
-                            console.log(key);
-                        }
-                    }
-                }
-            }
+        //         var rowHash = jsondata[i];
+        //         console.log(rowHash);
+        //         for (var key in rowHash) {
+        //             if (rowHash.hasOwnProperty(key)) {
+        //                 if ($.inArray(key, columnSet) == -1) {
+        //                     console.log(key);
+        //                 }
+        //             }
+        //         }
+        //     }
 
             // var columns = BindTableHeader(jsondata, tableid); /*Gets all the column headings of Excel*/
             // for (var i = 0; i < jsondata.length; i++) {
@@ -136,7 +229,7 @@
             //     }
             //     $(tableid).append(row$);
             // }
-        }
+        //}
 
             // function BindTableHeader(jsondata, tableid) {
             //     var columnSet = [];
